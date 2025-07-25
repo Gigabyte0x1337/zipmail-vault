@@ -18,29 +18,60 @@ export class ZipImporter {
     await db.attachments.clear();
     console.log('Existing data cleared');
 
-    // Import export index
+    // Import export index and get folder info
     console.log('Looking for export-index.json...');
     const exportIndexFile = zipData.file('export-index.json');
+    let exportIndex: ExportIndex | null = null;
+    
     if (exportIndexFile) {
       console.log('Found export-index.json, importing...');
       const exportIndexContent = await exportIndexFile.async('text');
-      const exportIndex: ExportIndex = JSON.parse(exportIndexContent);
+      exportIndex = JSON.parse(exportIndexContent);
       await db.exportIndex.add(exportIndex);
       console.log('Export index imported:', exportIndex);
     } else {
       console.log('No export-index.json found');
     }
 
-    // Process folders
+    // Process folders - try multiple approaches
     console.log('Processing folders...');
     const folders: { [key: string]: string } = {};
-    for (const [path, zipEntry] of Object.entries(zipData.files)) {
-      if (zipEntry.dir && path !== 'attachments/') {
-        const folderName = path.replace('/', '');
-        folders[folderName] = folderName;
-        console.log('Found folder:', folderName);
+    
+    // First, try to get folders from export index if available
+    if (exportIndex) {
+      console.log('Using folders from export index:', exportIndex.Folders);
+      
+      // Try both Name and SafeFolderName from export index
+      for (const folder of exportIndex.Folders) {
+        console.log('Checking folder:', folder);
+        // Check if SafeFolderName folder exists
+        if (zipData.file(`${folder.SafeFolderName}/emails.json`)) {
+          folders[folder.SafeFolderName] = folder.SafeFolderName;
+          console.log('Found folder using SafeFolderName:', folder.SafeFolderName);
+        }
+        // Also try the regular name
+        else if (zipData.file(`${folder.FolderName}/emails.json`)) {
+          folders[folder.FolderName] = folder.FolderName;
+          console.log('Found folder using FolderName:', folder.FolderName);
+        } else {
+          console.log('Could not find emails.json for folder:', folder.FolderName, 'or', folder.SafeFolderName);
+        }
       }
     }
+    
+    // Fallback: scan for directories
+    if (Object.keys(folders).length === 0) {
+      console.log('No folders found via export index, scanning for directories...');
+      for (const [path, zipEntry] of Object.entries(zipData.files)) {
+        console.log('ZIP entry:', path, 'isDir:', zipEntry.dir);
+        if (zipEntry.dir && path !== 'attachments/') {
+          const folderName = path.replace('/', '');
+          folders[folderName] = folderName;
+          console.log('Found folder via scanning:', folderName);
+        }
+      }
+    }
+    
     console.log('Total folders found:', Object.keys(folders).length, folders);
 
     // Import folder info and emails
