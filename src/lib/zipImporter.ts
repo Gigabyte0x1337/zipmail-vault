@@ -41,20 +41,20 @@ export class ZipImporter {
     if (exportIndex) {
       console.log('Using folders from export index:', exportIndex.Folders);
       
-      // Try both Name and SafeFolderName from export index
+      // Try both Name and SafeName from export index
       for (const folder of exportIndex.Folders) {
         console.log('Checking folder:', folder);
-        // Check if SafeFolderName folder exists
-        if (zipData.file(`${folder.SafeFolderName}/emails.json`)) {
-          folders[folder.SafeFolderName] = folder.SafeFolderName;
-          console.log('Found folder using SafeFolderName:', folder.SafeFolderName);
+        // Check if SafeName folder exists
+        if (zipData.file(`${folder.SafeName}/emails.json`)) {
+          folders[folder.SafeName] = folder.SafeName;
+          console.log('Found folder using SafeName:', folder.SafeName);
         }
         // Also try the regular name
-        else if (zipData.file(`${folder.FolderName}/emails.json`)) {
-          folders[folder.FolderName] = folder.FolderName;
-          console.log('Found folder using FolderName:', folder.FolderName);
+        else if (zipData.file(`${folder.Name}/emails.json`)) {
+          folders[folder.Name] = folder.Name;
+          console.log('Found folder using Name:', folder.Name);
         } else {
-          console.log('Could not find emails.json for folder:', folder.FolderName, 'or', folder.SafeFolderName);
+          console.log('Could not find emails.json for folder:', folder.Name, 'or', folder.SafeName);
         }
       }
     }
