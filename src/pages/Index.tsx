@@ -1,14 +1,51 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useEffect } from 'react';
+import { EmailUpload } from '@/components/EmailUpload';
+import { EmailClient } from '@/components/EmailClient';
+import { db } from '@/lib/database';
 
 const Index = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+  const [hasData, setHasData] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    checkForExistingData();
+  }, []);
+
+  const checkForExistingData = async () => {
+    try {
+      const folderCount = await db.folders.count();
+      setHasData(folderCount > 0);
+    } catch (error) {
+      console.error('Failed to check for existing data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleImportComplete = () => {
+    setHasData(true);
+  };
+
+  const handleBackToUpload = () => {
+    setHasData(false);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (hasData) {
+    return <EmailClient onBackToUpload={handleBackToUpload} />;
+  }
+
+  return <EmailUpload onImportComplete={handleImportComplete} />;
 };
 
 export default Index;

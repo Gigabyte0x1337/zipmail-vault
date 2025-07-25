@@ -52,6 +52,15 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				'email-sidebar': 'hsl(var(--email-sidebar))',
+				'email-sidebar-foreground': 'hsl(var(--email-sidebar-foreground))',
+				'email-sidebar-accent': 'hsl(var(--email-sidebar-accent))',
+				'email-list': 'hsl(var(--email-list))',
+				'email-list-foreground': 'hsl(var(--email-list-foreground))',
+				'email-item-hover': 'hsl(var(--email-item-hover))',
+				'email-item-selected': 'hsl(var(--email-item-selected))',
+				'email-unread': 'hsl(var(--email-unread))',
+				'email-read': 'hsl(var(--email-read))',
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
