@@ -83,44 +83,50 @@ export function EmailClient({ onBackToUpload }: EmailClientProps) {
   }
 
   return (
-    <div className="h-screen bg-background flex">
-      {/* Sidebar */}
-      <div className="w-64 bg-email-sidebar border-r border-border flex flex-col">
-        <div className="p-4 border-b border-border">
-          <h1 className="text-lg font-semibold text-email-sidebar-foreground">Email Client</h1>
-          <div className="flex gap-2 mt-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearData}
-              className="bg-transparent border-email-sidebar-foreground/20 text-email-sidebar-foreground hover:bg-email-sidebar-foreground/10"
-            >
-              <Upload className="h-3 w-3 mr-1" />
-              New Import
-            </Button>
+    <div className="h-screen bg-background flex flex-col">
+      {/* Gmail-style header */}
+      <div className="bg-[hsl(var(--gmail-header))] border-b border-[hsl(var(--gmail-border))] p-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-normal text-[hsl(var(--gmail-sidebar-foreground))]">
+            Email Client
+          </h1>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={clearData}
+            className="bg-transparent border-[hsl(var(--gmail-border))] text-[hsl(var(--gmail-sidebar-foreground))] hover:bg-[hsl(var(--gmail-sidebar-hover))]"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            New Import
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar */}
+        <div className="w-64 bg-[hsl(var(--gmail-sidebar))] border-r border-[hsl(var(--gmail-border))] flex flex-col">
+          <div className="flex-1 overflow-y-auto">
+            <FolderSidebar
+              folders={folders}
+              selectedFolder={selectedFolder}
+              onFolderSelect={setSelectedFolder}
+            />
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
-          <FolderSidebar
-            folders={folders}
-            selectedFolder={selectedFolder}
-            onFolderSelect={setSelectedFolder}
+
+        {/* Email List */}
+        <div className="w-80 bg-[hsl(var(--gmail-list))] border-r border-[hsl(var(--gmail-border))]">
+          <EmailList
+            emails={emails}
+            selectedEmail={selectedEmail}
+            onEmailSelect={handleEmailSelect}
           />
         </div>
-      </div>
 
-      {/* Email List */}
-      <div className="w-80 bg-email-list border-r border-border">
-        <EmailList
-          emails={emails}
-          selectedEmail={selectedEmail}
-          onEmailSelect={handleEmailSelect}
-        />
-      </div>
-
-      {/* Email Viewer */}
-      <div className="flex-1 bg-background">
-        <EmailViewer email={selectedEmail} />
+        {/* Email Viewer */}
+        <div className="flex-1 bg-[hsl(var(--gmail-list))] overflow-hidden">
+          <EmailViewer email={selectedEmail} />
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { formatDistanceToNow } from 'date-fns';
-import { Paperclip } from 'lucide-react';
+import { Paperclip, Mail } from 'lucide-react';
 import { EmailData } from '@/lib/database';
 import { cn } from '@/lib/utils';
 
@@ -29,9 +29,9 @@ export function EmailList({ emails, selectedEmail, onEmailSelect }: EmailListPro
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b border-border">
-        <h2 className="font-semibold text-email-list-foreground">
-          Emails ({emails.length})
+      <div className="p-4 border-b border-[hsl(var(--gmail-border))]">
+        <h2 className="font-normal text-[hsl(var(--gmail-list-foreground))]">
+          {emails.length} conversations
         </h2>
       </div>
       
@@ -41,53 +41,52 @@ export function EmailList({ emails, selectedEmail, onEmailSelect }: EmailListPro
             key={email.Id}
             onClick={() => onEmailSelect(email)}
             className={cn(
-              "w-full text-left p-4 border-b border-border/50 transition-colors",
-              "hover:bg-email-item-hover",
+              "w-full text-left p-4 border-b border-[hsl(var(--gmail-border))]/30 transition-colors",
+              "hover:bg-[hsl(var(--gmail-item-hover))]",
               selectedEmail?.Id === email.Id
-                ? "bg-email-item-selected"
+                ? "bg-[hsl(var(--gmail-item-selected))]"
                 : "bg-transparent"
             )}
           >
-            <div className="space-y-2">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0 flex-1 flex items-center gap-2">
+                  {!email.isRead && (
+                    <div className="w-2 h-2 bg-[hsl(var(--primary))] rounded-full flex-shrink-0" />
+                  )}
                   <div className={cn(
-                    "font-medium text-sm truncate",
-                    email.isRead ? "text-email-read" : "text-email-unread"
+                    "font-normal text-sm truncate",
+                    email.isRead ? "text-[hsl(var(--gmail-read))]" : "text-[hsl(var(--gmail-unread))] font-medium"
                   )}>
                     {formatSender(email.From)}
                   </div>
-                  <div className={cn(
-                    "text-sm truncate mt-1",
-                    email.isRead ? "text-email-read" : "text-email-unread font-medium"
-                  )}>
-                    {email.Subject}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
                   {email.HasAttachments && (
-                    <Paperclip className="h-3 w-3 text-muted-foreground" />
+                    <Paperclip className="h-4 w-4 text-[hsl(var(--muted-foreground))] flex-shrink-0" />
                   )}
-                  {!email.isRead && (
-                    <div className="w-2 h-2 bg-primary rounded-full" />
-                  )}
+                </div>
+                <div className="text-xs text-[hsl(var(--muted-foreground))] flex-shrink-0">
+                  {formatDate(email.Date)}
                 </div>
               </div>
               
-              <div className="text-xs text-muted-foreground">
-                {formatDate(email.Date)}
+              <div className={cn(
+                "text-sm truncate",
+                email.isRead ? "text-[hsl(var(--gmail-read))]" : "text-[hsl(var(--gmail-unread))] font-medium"
+              )}>
+                {email.Subject || "(no subject)"}
               </div>
               
-              <div className="text-xs text-muted-foreground line-clamp-2">
-                {email.TextBody?.substring(0, 120)}...
+              <div className="text-sm text-[hsl(var(--muted-foreground))] line-clamp-1">
+                {email.TextBody?.substring(0, 100) || email.HtmlBody?.replace(/<[^>]*>/g, '').substring(0, 100) || ""}
               </div>
             </div>
           </button>
         ))}
         
         {emails.length === 0 && (
-          <div className="p-8 text-center text-muted-foreground">
-            No emails in this folder
+          <div className="p-8 text-center text-[hsl(var(--muted-foreground))]">
+            <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No emails in this folder</p>
           </div>
         )}
       </div>
