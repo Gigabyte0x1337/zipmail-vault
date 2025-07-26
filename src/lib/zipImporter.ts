@@ -97,7 +97,7 @@ export class ZipImporter {
       if (emailsFile) {
         console.log(`Found emails.json for ${folderName}`);
         const emailsContent = await emailsFile.async('text');
-        const emails: Omit<EmailData, 'folderId'>[] = JSON.parse(emailsContent);
+        const emails: Omit<EmailData, 'folderId'>[] = JSON.parse(emailsContent.trim());
         console.log(`Found ${emails.length} emails in ${folderName}`);
         
         const emailsWithFolderId = emails.map(email => ({
