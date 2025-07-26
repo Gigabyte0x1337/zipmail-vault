@@ -38,19 +38,19 @@ All colors MUST be HSL.
 
     --radius: 0.5rem;
 
-    /* Gmail-inspired colors */
-    --gmail-sidebar: 0 0% 100%;
-    --gmail-sidebar-foreground: 0 0% 26%;
-    --gmail-sidebar-hover: 240 100% 97%;
-    --gmail-sidebar-selected: 217 91% 95%;
-    --gmail-list: 0 0% 100%;
-    --gmail-list-foreground: 0 0% 26%;
-    --gmail-item-hover: 240 100% 98%;
-    --gmail-item-selected: 217 91% 90%;
-    --gmail-unread: 0 0% 13%;
-    --gmail-read: 0 0% 54%;
-    --gmail-border: 0 0% 91%;
-    --gmail-header: 248 100% 99%;
+    /* Gmail-inspired colors – brighter, livelier palette */
+    --gmail-sidebar: 212 100% 97%;          /* light sky-blue sidebar */
+    --gmail-sidebar-foreground: 210 20% 25%;
+    --gmail-sidebar-hover: 212 100% 94%;
+    --gmail-sidebar-selected: 217 91% 88%;  /* subtle blue highlight */
+    --gmail-list: 0 0% 100%;                /* keep message list white */
+    --gmail-list-foreground: 210 18% 24%;
+    --gmail-item-hover: 212 100% 98%;
+    --gmail-item-selected: 212 100% 92%;
+    --gmail-unread: 210 15% 20%;
+    --gmail-read: 210 9% 55%;
+    --gmail-border: 210 16% 90%;            /* slightly bluish borders */
+    --gmail-header: 212 100% 90%;
 
     --sidebar-background: 0 0% 98%;
 
@@ -129,5 +129,45 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    /* Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary)) hsl(var(--gmail-border));
+  }
+
+  /* WebKit (Chrome, Edge, Safari) */
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: hsl(var(--gmail-border));
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--primary));
+    border-radius: 4px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--primary) / 0.85);
+  }
+
+  /* Additional theme overrides */
+  .theme-blue {
+    --gmail-sidebar: 210 100% 96%;
+    --gmail-header: 210 100% 88%;
+    --gmail-item-hover: 210 100% 97%;
+    --gmail-item-selected: 210 100% 92%;
+    --primary: 210 90% 55%;
+  }
+
+  .theme-dark-blue {
+    --gmail-sidebar: 212 15% 12%;
+    --gmail-header: 212 15% 17%;
+    --gmail-list: 212 15% 12%;
+    --gmail-item-hover: 212 15% 18%;
+    --gmail-item-selected: 212 15% 22%;
+    --primary: 212 90% 60%;
   }
 }

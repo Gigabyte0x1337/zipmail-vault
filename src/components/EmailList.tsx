@@ -2,15 +2,18 @@ import { formatDistanceToNow } from 'date-fns';
 import { Paperclip, Mail } from 'lucide-react';
 import { EmailData } from '@/lib/database';
 import { cn } from '@/lib/utils';
+import { Locale } from 'date-fns';
 
 interface EmailListProps {
   emails: EmailData[];
   selectedEmail: EmailData | null;
   onEmailSelect: (email: EmailData) => void;
   folderName?: string;
+  locale?: Locale;
+  conversationsLabel?: string;
 }
 
-export function EmailList({ emails, selectedEmail, onEmailSelect, folderName }: EmailListProps) {
+export function EmailList({ emails, selectedEmail, onEmailSelect, folderName, locale, conversationsLabel = 'conversations' }: EmailListProps) {
   const formatSender = (from: string) => {
     const match = from.match(/"([^"]+)"/);
     if (match) return match[1];
@@ -22,7 +25,7 @@ export function EmailList({ emails, selectedEmail, onEmailSelect, folderName }: 
   const formatDate = (dateStr: string) => {
     try {
       const date = new Date(dateStr);
-      return formatDistanceToNow(date, { addSuffix: true });
+      return formatDistanceToNow(date, { addSuffix: true, locale });
     } catch {
       return dateStr;
     }
@@ -35,7 +38,7 @@ export function EmailList({ emails, selectedEmail, onEmailSelect, folderName }: 
           {folderName || 'Folder'}
         </div>
         <h2 className="font-normal text-[hsl(var(--gmail-list-foreground))]">
-          {emails.length} conversations
+          {emails.length} {conversationsLabel}
         </h2>
       </div>
       

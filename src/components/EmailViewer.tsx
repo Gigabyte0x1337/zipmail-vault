@@ -1,16 +1,19 @@
-import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
+import { useState, useEffect, useRef } from 'react';
+import { format, Locale } from 'date-fns';
 import { Paperclip, Download, FileText, Mail } from 'lucide-react';
 import { EmailData, db } from '@/lib/database';
 import { Button } from '@/components/ui/button';
+import { Lightbulb } from 'lucide-react';
 
 interface EmailViewerProps {
   email: EmailData | null;
   folderName?: string;
+  locale?: Locale;
 }
 
-export function EmailViewer({ email, folderName }: EmailViewerProps) {
+export function EmailViewer({ email, folderName, locale }: EmailViewerProps) {
   const [attachmentData, setAttachmentData] = useState<{ [guid: string]: ArrayBuffer }>({});
+  const [showOriginal, setShowOriginal] = useState(false);
 
   useEffect(() => {
     if (email?.Attachments?.length) {
@@ -85,6 +88,42 @@ export function EmailViewer({ email, folderName }: EmailViewerProps) {
   const fromInfo = formatEmail(email.From);
   const toInfo = formatEmail(email.To);
 
+  // Helper component to render arbitrary HTML inside an isolated shadow root
+  const HtmlShadow: React.FC<{ html: string }> = ({ html }) => {
+    const hostRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+      if (!hostRef.current) return;
+      // Attach (or retrieve existing) shadow root
+      const shadow = hostRef.current.shadowRoot ?? hostRef.current.attachShadow({ mode: 'open' });
+      shadow.innerHTML = html;
+
+      const isDark = document.documentElement.classList.contains('dark');
+      if (isDark && !showOriginal) {
+        const styleEl = document.createElement('style');
+        // Re-invert images/videos so they keep original colors
+        styleEl.textContent = `img, video { filter: invert(1) hue-rotate(180deg); }`;
+        shadow.appendChild(styleEl);
+      }
+    }, [html, showOriginal]);
+
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Heuristic: if html already contains dark background, skip inversion by default
+    const hasDarkBg = /background(?:-color)?:\s*(#000000|#000|rgb\(0,0,0\))/i.test(html);
+    const shouldInvert = isDark && !showOriginal && !hasDarkBg;
+
+    return (
+      <div
+        ref={hostRef}
+        className="w-full"
+        style={{
+          filter: shouldInvert ? 'invert(1) hue-rotate(180deg)' : 'none',
+        }}
+      />
+    );
+  };
+
   return (
     <div className="h-full overflow-y-auto bg-[hsl(var(--gmail-list))]">
       <div className="p-6 space-y-4">
@@ -119,7 +158,7 @@ export function EmailViewer({ email, folderName }: EmailViewerProps) {
               </div>
             </div>
             <div className="text-sm text-[hsl(var(--muted-foreground))] text-right">
-              {format(new Date(email.Date), 'MMM d, yyyy, h:mm a')}
+              {format(new Date(email.Date), 'PP p', { locale })}
               {email.HasAttachments && (
                 <div className="flex items-center gap-1 mt-1 justify-end">
                   <Paperclip className="h-3 w-3" />
@@ -139,11 +178,11 @@ export function EmailViewer({ email, folderName }: EmailViewerProps) {
                 {email.Attachments.length} attachment{email.Attachments.length > 1 ? 's' : ''}
               </span>
             </div>
-            <div className="space-y-2">
+            <div className="flex flex-wrap gap-4">
               {email.Attachments.map((attachment) => (
                 <div
                   key={attachment.Guid}
-                  className="flex items-center justify-between p-2 bg-background rounded border border-[hsl(var(--gmail-border))]"
+                  className="flex items-center justify-between px-3 py-2 bg-background rounded border border-[hsl(var(--gmail-border))] w-fit max-w-xs gap-4"
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <FileText className="h-4 w-4 text-[hsl(var(--muted-foreground))] flex-shrink-0" />
@@ -173,14 +212,29 @@ export function EmailViewer({ email, folderName }: EmailViewerProps) {
         )}
 
         {/* Email Body */}
-        <div className="prose prose-sm max-w-none dark:prose-invert prose-gray">
+        <div className="prose prose-sm max-w-none dark:prose-invert prose-gray relative">
+          {/* Toggle original/light icon */}
+          {document.documentElement.classList.contains('dark') && (
+            <button
+              className="absolute -top-6 left-0 text-[hsl(var(--gmail-unread))] hover:opacity-80"
+              title={showOriginal ? 'Use dark mode' : 'Show original'}
+              onClick={() => setShowOriginal(!showOriginal)}
+            >
+              <Lightbulb className="h-5 w-5" fill={showOriginal ? 'currentColor' : 'none'} />
+            </button>
+          )}
           {email.HtmlBody ? (
-            <div 
-              className="text-[hsl(var(--gmail-unread))]"
-              dangerouslySetInnerHTML={{ __html: email.HtmlBody }}
-            />
+            <HtmlShadow html={email.HtmlBody} />
           ) : email.TextBody ? (
-            <div className="whitespace-pre-wrap text-[hsl(var(--gmail-unread))] leading-relaxed">
+            <div
+              className="whitespace-pre-wrap text-[hsl(var(--gmail-unread))] leading-relaxed"
+              style={{
+                filter:
+                  document.documentElement.classList.contains('dark') && !showOriginal
+                    ? 'invert(1) hue-rotate(180deg)'
+                    : 'none',
+              }}
+            >
               {email.TextBody}
             </div>
           ) : (

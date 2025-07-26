@@ -6,13 +6,14 @@ interface FolderSidebarProps {
   folders: FolderInfo[];
   selectedFolder: string | null;
   onFolderSelect: (folderId: string) => void;
+  label?: string;
 }
 
-export function FolderSidebar({ folders, selectedFolder, onFolderSelect }: FolderSidebarProps) {
+export function FolderSidebar({ folders, selectedFolder, onFolderSelect, label = 'Folders' }: FolderSidebarProps) {
   return (
     <div className="p-4">
       <h2 className="text-sm font-medium text-[hsl(var(--gmail-sidebar-foreground))] mb-3 px-2">
-        Folders
+        {label}
       </h2>
       {folders.map((folder) => (
         <button
@@ -30,7 +31,7 @@ export function FolderSidebar({ folders, selectedFolder, onFolderSelect }: Folde
             <Folder className="h-4 w-4 flex-shrink-0" />
             <div className="min-w-0 flex-1 flex items-center justify-between">
               <div className="font-normal text-sm truncate">
-                {folder.FolderName}
+                {folder.FolderName || (folder as any).Name || folder.id}
               </div>
               {folder.EmailCount > 0 && (
                 <span className="text-xs opacity-70 ml-2">
