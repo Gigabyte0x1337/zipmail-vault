@@ -35,10 +35,14 @@ jobs:
       - name: Install Surge CLI
         run: npm install -g surge
 
-      - name: Deploy to Surge
-        if: ${{ secrets.SURGE_TOKEN }}
+      - name: Deploy to Surge (if token configured)
         env:
           SURGE_LOGIN: ${{ secrets.SURGE_LOGIN }}
           SURGE_TOKEN: ${{ secrets.SURGE_TOKEN }}
+          SURGE_DOMAIN: ${{ secrets.SURGE_DOMAIN }}
         run: |
-          surge ./dist --domain ${{ secrets.SURGE_DOMAIN }} --token ${{ secrets.SURGE_TOKEN }} 
+          if [ -n "$SURGE_TOKEN" ]; then
+            surge ./dist --domain "$SURGE_DOMAIN" --token "$SURGE_TOKEN"
+          else
+            echo "SURGE_TOKEN not set; skipping deployment."
+          fi 
