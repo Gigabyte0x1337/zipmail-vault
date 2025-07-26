@@ -2,7 +2,10 @@ import JSZip from 'jszip';
 import { db, EmailData, FolderInfo, ExportIndex } from './database';
 
 export class ZipImporter {
-  async importZipFile(file: File): Promise<void> {
+  async importZipFile(
+    file: File,
+    onProgress?: (progress: number, opsPerSecond: number) => void
+  ): Promise<void> {
     console.log('Starting ZIP import for file:', file.name, 'Size:', file.size);
     
     const zip = new JSZip();
@@ -33,115 +36,146 @@ export class ZipImporter {
       console.log('No export-index.json found');
     }
 
-    // Process folders - try multiple approaches
+    // ------------------------------------------------------------
+    // Discover folders in the ZIP just like before
+    // ------------------------------------------------------------
     console.log('Processing folders...');
     const folders: { [key: string]: string } = {};
-    
+
     // First, try to get folders from export index if available
     if (exportIndex) {
       console.log('Using folders from export index:', exportIndex.Folders);
-      
+
       // Try both Name and SafeName from export index
       for (const folder of exportIndex.Folders) {
-        console.log('Checking folder:', folder);
         // Check if SafeName folder exists
         if (zipData.file(`${folder.SafeName}/emails.json`)) {
           folders[folder.SafeName] = folder.SafeName;
-          console.log('Found folder using SafeName:', folder.SafeName);
         }
         // Also try the regular name
         else if (zipData.file(`${folder.Name}/emails.json`)) {
           folders[folder.Name] = folder.Name;
-          console.log('Found folder using Name:', folder.Name);
-        } else {
-          console.log('Could not find emails.json for folder:', folder.Name, 'or', folder.SafeName);
         }
       }
     }
-    
+
     // Fallback: scan for directories containing emails.json
     if (Object.keys(folders).length === 0) {
-      console.log('No folders found via export index, scanning for directories...');
-      for (const [path, zipEntry] of Object.entries(zipData.files)) {
-        console.log('ZIP entry:', path, 'isDir:', zipEntry.dir);
+      for (const path of Object.keys(zipData.files)) {
         if (path.includes('/emails.json')) {
           const folderName = path.split('/')[0];
           if (folderName && folderName !== 'attachments') {
             folders[folderName] = folderName;
-            console.log('Found folder via scanning:', folderName);
           }
         }
       }
     }
-    
+
     console.log('Total folders found:', Object.keys(folders).length, folders);
 
-    // Import folder info and emails
-    console.log('Importing folder info and emails...');
-    for (const folderName of Object.keys(folders)) {
-      const folderId = folderName;
-      console.log(`Processing folder: ${folderName}`);
-      
-      // Import folder info
-      const folderInfoFile = zipData.file(`${folderName}/folder-info.json`);
-      if (folderInfoFile) {
-        console.log(`Found folder-info.json for ${folderName}`);
-        const folderInfoContent = await folderInfoFile.async('text');
-        const folderInfo: FolderInfo = { ...JSON.parse(folderInfoContent), id: folderId };
-        await db.folders.add(folderInfo);
-        console.log(`Folder info imported for ${folderName}:`, folderInfo);
-      } else {
-        console.log(`No folder-info.json found for ${folderName}`);
-      }
+    // ------------------------------------------------------------
+    // Calculate total operations (folders + emails + attachments)
+    // ------------------------------------------------------------
+    let totalOperations = 0;
+    const folderEmailData: Record<string, Omit<EmailData, 'folderId'>[]> = {};
 
-      // Import emails
+    // Count folders (each folder-info write counts as an op)
+    totalOperations += Object.keys(folders).length;
+
+    // Also determine number of emails per folder (and cache them)
+    for (const folderName of Object.keys(folders)) {
       const emailsFile = zipData.file(`${folderName}/emails.json`);
       if (emailsFile) {
-        console.log(`Found emails.json for ${folderName}`);
         const emailsContent = await emailsFile.async('text');
         const emails: Omit<EmailData, 'folderId'>[] = JSON.parse(emailsContent.trim());
-        console.log(`Found ${emails.length} emails in ${folderName}`);
-        
-        const emailsWithFolderId = emails.map(email => ({
-          ...email,
-          folderId,
-          isRead: false
-        }));
-        
-        await db.emails.bulkAdd(emailsWithFolderId);
-        console.log(`Imported ${emails.length} emails for ${folderName}`);
+        folderEmailData[folderName] = emails;
+        totalOperations += emails.length; // each email write counts
       } else {
-        console.log(`No emails.json found for ${folderName}`);
+        folderEmailData[folderName] = [];
       }
     }
 
+    // Count attachments
+    const attachmentsFolder = zipData.folder('attachments');
+    let attachmentCount = 0;
+    if (attachmentsFolder) {
+      attachmentsFolder.forEach((relativePath, file) => {
+        if (!file.dir) attachmentCount++;
+      });
+    }
+    totalOperations += attachmentCount;
+
+    console.log('Total operations estimated:', totalOperations);
+
+    // ------------------------------------------------------------
+    // Begin import while tracking progress
+    // ------------------------------------------------------------
+    const startTime = performance.now();
+    let completedOperations = 0;
+
+    const reportProgress = () => {
+      if (!onProgress) return;
+      const elapsed = (performance.now() - startTime) / 1000;
+      const opsPerSecond = elapsed > 0 ? completedOperations / elapsed : 0;
+      const progressPercent = totalOperations > 0 ? (completedOperations / totalOperations) * 100 : 0;
+      onProgress(Math.min(progressPercent, 100), opsPerSecond);
+    };
+
+    // ---------------------------------
+    // Import folder info + emails
+    // ---------------------------------
+    for (const folderName of Object.keys(folders)) {
+      const folderId = folderName;
+      // Import folder info
+      const folderInfoFile = zipData.file(`${folderName}/folder-info.json`);
+      if (folderInfoFile) {
+        const folderInfoContent = await folderInfoFile.async('text');
+        const folderInfo: FolderInfo = { ...JSON.parse(folderInfoContent), id: folderId };
+        await db.folders.add(folderInfo);
+      }
+      completedOperations++; // folder-info write done
+      reportProgress();
+
+      // Import emails for this folder (already parsed)
+      const emailsCached = folderEmailData[folderName] || [];
+      if (emailsCached.length) {
+        const emailsWithFolderId = emailsCached.map((email) => ({
+          ...email,
+          folderId,
+          isRead: false,
+        }));
+        await db.emails.bulkPut(emailsWithFolderId);
+      }
+      completedOperations += emailsCached.length;
+      reportProgress();
+    }
+
+    // ---------------------------------
     // Import attachments
+    // ---------------------------------
     console.log('Importing attachments...');
     const attachmentPromises: Promise<void>[] = [];
-    const attachmentsFolder = zipData.folder('attachments');
     if (attachmentsFolder) {
-      console.log('Found attachments folder');
       attachmentsFolder.forEach((relativePath, file) => {
         if (!file.dir) {
           const guid = relativePath;
-          console.log('Processing attachment:', guid);
           attachmentPromises.push(
             file.async('arraybuffer').then(async (data) => {
-              await db.attachments.add({ guid, data });
-              console.log(`Imported attachment: ${guid} (${data.byteLength} bytes)`);
+              await db.attachments.put({ guid, data });
+              completedOperations++;
+              reportProgress();
             })
           );
         }
       });
-    } else {
-      console.log('No attachments folder found');
     }
 
     await Promise.all(attachmentPromises);
-    console.log(`Imported ${attachmentPromises.length} attachments`);
+    reportProgress(); // final report should hit 100%
+
     console.log('ZIP import completed successfully!');
-    
-    // Final verification - check that data was actually imported
+
+    // Final verification
     const finalFolderCount = await db.folders.count();
     const finalEmailCount = await db.emails.count();
     console.log('Final verification - Folders:', finalFolderCount, 'Emails:', finalEmailCount);

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { ZipImporter } from '@/lib/zipImporter';
+import { Progress } from '@/components/ui/progress';
 
 interface EmailUploadProps {
   onImportComplete: () => void;
@@ -11,7 +12,9 @@ interface EmailUploadProps {
 
 export function EmailUpload({ onImportComplete }: EmailUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const [progress, setProgress] = useState('');
+  const [progressText, setProgressText] = useState('');
+  const [progressValue, setProgressValue] = useState(0);
+  const [opsPerSec, setOpsPerSec] = useState(0);
   const { toast } = useToast();
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -28,15 +31,20 @@ export function EmailUpload({ onImportComplete }: EmailUploadProps) {
     }
 
     setIsUploading(true);
-    setProgress('Reading ZIP file...');
+    setProgressText('Reading ZIP file...');
+    setProgressValue(0);
+    setOpsPerSec(0);
     
     try {
       const importer = new ZipImporter();
-      
-      setProgress('Importing email data...');
-      await importer.importZipFile(file);
-      
-      setProgress('Finalizing...');
+
+      setProgressText('Importing email data...');
+      await importer.importZipFile(file, (prog, ops) => {
+        setProgressValue(prog);
+        setOpsPerSec(ops);
+      });
+
+      setProgressText('Finalizing...');
       
       toast({
         title: "Import successful",
@@ -56,7 +64,9 @@ export function EmailUpload({ onImportComplete }: EmailUploadProps) {
       });
     } finally {
       setIsUploading(false);
-      setProgress('');
+      setProgressText('');
+      setProgressValue(0);
+      setOpsPerSec(0);
     }
   };
 
@@ -80,6 +90,7 @@ export function EmailUpload({ onImportComplete }: EmailUploadProps) {
               onChange={handleFileUpload}
               disabled={isUploading}
               className="hidden"
+              aria-label="Upload ZIP File"
             />
             <Button
               onClick={() => document.getElementById('zip-upload')?.click()}
@@ -90,7 +101,7 @@ export function EmailUpload({ onImportComplete }: EmailUploadProps) {
             {isUploading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {progress || 'Importing...'}
+                {progressText || `${progressValue.toFixed(0)}%`}
               </>
             ) : (
               <>
@@ -100,6 +111,15 @@ export function EmailUpload({ onImportComplete }: EmailUploadProps) {
             )}
             </Button>
           </div>
+
+          {isUploading && (
+            <div className="mt-4 space-y-2">
+              <Progress value={progressValue} />
+              <p className="text-xs text-muted-foreground">
+                {progressValue.toFixed(0)}% • {opsPerSec.toFixed(1)} ops/s
+              </p>
+            </div>
+          )}
 
           <div className="mt-6 text-xs text-muted-foreground">
             <p>Expected ZIP structure:</p>
