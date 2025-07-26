@@ -54,12 +54,18 @@ export function EmailClient({ onBackToUpload }: EmailClientProps) {
   };
 
   const handleEmailSelect = async (email: EmailData) => {
+    console.log('Email selected:', email.Id, email.Subject);
     setSelectedEmail(email);
     
     // Mark as read
     if (!email.isRead) {
-      await db.emails.update(email.Id, { isRead: true });
-      loadEmails(selectedFolder!);
+      try {
+        await db.emails.update(email.Id, { isRead: true });
+        // Reload emails to reflect the read status
+        loadEmails(selectedFolder!);
+      } catch (error) {
+        console.error('Failed to mark email as read:', error);
+      }
     }
   };
 
@@ -120,12 +126,16 @@ export function EmailClient({ onBackToUpload }: EmailClientProps) {
             emails={emails}
             selectedEmail={selectedEmail}
             onEmailSelect={handleEmailSelect}
+            folderName={folders.find(f => f.id === selectedFolder)?.FolderName}
           />
         </div>
 
         {/* Email Viewer */}
         <div className="flex-1 bg-[hsl(var(--gmail-list))] overflow-hidden">
-          <EmailViewer email={selectedEmail} />
+          <EmailViewer 
+            email={selectedEmail} 
+            folderName={folders.find(f => f.id === selectedFolder)?.FolderName}
+          />
         </div>
       </div>
     </div>

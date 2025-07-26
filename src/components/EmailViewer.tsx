@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 
 interface EmailViewerProps {
   email: EmailData | null;
+  folderName?: string;
 }
 
-export function EmailViewer({ email }: EmailViewerProps) {
+export function EmailViewer({ email, folderName }: EmailViewerProps) {
   const [attachmentData, setAttachmentData] = useState<{ [guid: string]: ArrayBuffer }>({});
 
   useEffect(() => {

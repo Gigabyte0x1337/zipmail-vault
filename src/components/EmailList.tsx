@@ -7,9 +7,10 @@ interface EmailListProps {
   emails: EmailData[];
   selectedEmail: EmailData | null;
   onEmailSelect: (email: EmailData) => void;
+  folderName?: string;
 }
 
-export function EmailList({ emails, selectedEmail, onEmailSelect }: EmailListProps) {
+export function EmailList({ emails, selectedEmail, onEmailSelect, folderName }: EmailListProps) {
   const formatSender = (from: string) => {
     const match = from.match(/"([^"]+)"/);
     if (match) return match[1];
@@ -30,6 +31,9 @@ export function EmailList({ emails, selectedEmail, onEmailSelect }: EmailListPro
   return (
     <div className="h-full flex flex-col">
       <div className="p-4 border-b border-[hsl(var(--gmail-border))]">
+        <div className="text-sm text-[hsl(var(--muted-foreground))] mb-1">
+          {folderName || 'Folder'}
+        </div>
         <h2 className="font-normal text-[hsl(var(--gmail-list-foreground))]">
           {emails.length} conversations
         </h2>
@@ -39,7 +43,10 @@ export function EmailList({ emails, selectedEmail, onEmailSelect }: EmailListPro
         {emails.map((email) => (
           <button
             key={email.Id}
-            onClick={() => onEmailSelect(email)}
+            onClick={() => {
+              console.log('Clicking email:', email.Id, email.Subject);
+              onEmailSelect(email);
+            }}
             className={cn(
               "w-full text-left p-4 border-b border-[hsl(var(--gmail-border))]/30 transition-colors",
               "hover:bg-[hsl(var(--gmail-item-hover))]",
