@@ -47,8 +47,8 @@ export interface ExportIndex {
   TotalEmails: number;
   TotalAttachments: number;
   Folders: Array<{
-    FolderName: string;
-    SafeFolderName: string;
+    Name: string;
+    SafeName: string;
     EmailCount: number;
     AttachmentCount: number;
     DateRange: {
