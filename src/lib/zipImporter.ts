@@ -59,15 +59,17 @@ export class ZipImporter {
       }
     }
     
-    // Fallback: scan for directories
+    // Fallback: scan for directories containing emails.json
     if (Object.keys(folders).length === 0) {
       console.log('No folders found via export index, scanning for directories...');
       for (const [path, zipEntry] of Object.entries(zipData.files)) {
         console.log('ZIP entry:', path, 'isDir:', zipEntry.dir);
-        if (zipEntry.dir && path !== 'attachments/') {
-          const folderName = path.replace('/', '');
-          folders[folderName] = folderName;
-          console.log('Found folder via scanning:', folderName);
+        if (path.includes('/emails.json')) {
+          const folderName = path.split('/')[0];
+          if (folderName && folderName !== 'attachments') {
+            folders[folderName] = folderName;
+            console.log('Found folder via scanning:', folderName);
+          }
         }
       }
     }
@@ -138,5 +140,10 @@ export class ZipImporter {
     await Promise.all(attachmentPromises);
     console.log(`Imported ${attachmentPromises.length} attachments`);
     console.log('ZIP import completed successfully!');
+    
+    // Final verification - check that data was actually imported
+    const finalFolderCount = await db.folders.count();
+    const finalEmailCount = await db.emails.count();
+    console.log('Final verification - Folders:', finalFolderCount, 'Emails:', finalEmailCount);
   }
 }

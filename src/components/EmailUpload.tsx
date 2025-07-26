@@ -11,6 +11,7 @@ interface EmailUploadProps {
 
 export function EmailUpload({ onImportComplete }: EmailUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [progress, setProgress] = useState('');
   const { toast } = useToast();
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,16 +28,25 @@ export function EmailUpload({ onImportComplete }: EmailUploadProps) {
     }
 
     setIsUploading(true);
+    setProgress('Reading ZIP file...');
+    
     try {
       const importer = new ZipImporter();
+      
+      setProgress('Importing email data...');
       await importer.importZipFile(file);
+      
+      setProgress('Finalizing...');
       
       toast({
         title: "Import successful",
         description: "Email data has been imported successfully.",
       });
       
-      onImportComplete();
+      // Small delay to show completion
+      setTimeout(() => {
+        onImportComplete();
+      }, 500);
     } catch (error) {
       console.error('Import failed:', error);
       toast({
@@ -46,6 +56,7 @@ export function EmailUpload({ onImportComplete }: EmailUploadProps) {
       });
     } finally {
       setIsUploading(false);
+      setProgress('');
     }
   };
 
@@ -76,17 +87,17 @@ export function EmailUpload({ onImportComplete }: EmailUploadProps) {
               className="w-full"
               size="lg"
             >
-              {isUploading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Importing...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload ZIP File
-                </>
-              )}
+            {isUploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {progress || 'Importing...'}
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                Upload ZIP File
+              </>
+            )}
             </Button>
           </div>
 
