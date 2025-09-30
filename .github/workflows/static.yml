@@ -36,10 +36,15 @@ jobs:
       - name: Build project
         run: npm run build
 
+      # Upload the build output as an artifact named 'github-pages'
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'dist'
+
+      # Setup Pages without any inputs
       - name: Setup Pages
         uses: actions/configure-pages@v5
-        with:
-          path: 'dist'             # <-- Deploy the build output ONLY
 
       - name: Deploy to GitHub Pages
         id: deployment
